@@ -1,0 +1,242 @@
+# Prepare a downloadable ZIP package of the current project structure
+import os
+import zipfile
+
+# Define the project structure
+project_name = "student_stationery_store"
+project_root = f"/mnt/data/{project_name}"
+os.makedirs(project_root, exist_ok=True)
+
+# File paths relative to project root
+files = {
+    "App.js": """import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import CheckoutPage from './pages/CheckoutPage';
+import PaymentPage from './pages/PaymentPage';
+import AdminDataPage from './pages/AdminDataPage';
+import CartPage from './pages/CartPage';
+import LoginPage from './pages/LoginPage';
+import Navbar from './components/Navbar';
+
+export default function App() {
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/admin-data" element={<AdminDataPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </Router>
+  );
+}
+""",
+    "components/Navbar.js": """import React from 'react';
+import { Link } from 'react-router-dom';
+
+export default function Navbar() {
+  return (
+    <nav className="bg-gray-800 text-white p-4 flex justify-between">
+      <Link to="/" className="font-bold">Student Store</Link>
+      <div className="space-x-4">
+        <Link to="/cart">Cart</Link>
+        <Link to="/login">Login</Link>
+      </div>
+    </nav>
+  );
+}
+""",
+    "pages/HomePage.js": """import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const products = [
+  { id: 1, name: 'Notebook', price: '₹50' },
+  { id: 2, name: 'Pen Set', price: '₹100' },
+  { id: 3, name: 'Calculator', price: '₹250' },
+];
+
+export default function HomePage() {
+  const navigate = useNavigate();
+
+  const handleAddToCart = (product) => {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    cart.push(product);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    navigate('/cart');
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Student Essentials Store</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {products.map(product => (
+          <div key={product.id} className="border p-4">
+            <h2 className="text-xl font-semibold">{product.name}</h2>
+            <p>{product.price}</p>
+            <button onClick={() => handleAddToCart(product)} className="text-blue-500 mt-2 block">Add to Cart</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+""",
+    "pages/CartPage.js": """import React from 'react';
+import { Link } from 'react-router-dom';
+
+export default function CartPage() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const total = cart.reduce((sum, item) => sum + parseInt(item.price.replace('₹', '')), 0);
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Your Cart</h1>
+      <ul>
+        {cart.map((item, index) => (
+          <li key={index} className="mb-2">{item.name} - {item.price}</li>
+        ))}
+      </ul>
+      <p className="font-semibold">Total: ₹{total}</p>
+      <Link to="/checkout" className="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block">Proceed to Checkout</Link>
+    </div>
+  );
+}
+""",
+    "pages/CheckoutPage.js": """import React from 'react';
+import { Link } from 'react-router-dom';
+
+export default function CheckoutPage() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const total = cart.reduce((sum, item) => sum + parseInt(item.price.replace('₹', '')), 0);
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Checkout</h1>
+      <ul>
+        {cart.map((item, index) => (
+          <li key={index}>{item.name} - {item.price}</li>
+        ))}
+      </ul>
+      <p className="mt-4">Total: ₹{total}</p>
+      <Link to="/payment" className="bg-blue-500 text-white px-4 py-2 rounded">Proceed to Payment</Link>
+    </div>
+  );
+}
+""",
+    "pages/PaymentPage.js": """import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+export default function PaymentPage() {
+  const navigate = useNavigate();
+
+  const handlePayment = (e) => {
+    e.preventDefault();
+    const orders = JSON.parse(localStorage.getItem('orders')) || [];
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const customer = localStorage.getItem('username') || 'Guest';
+
+    cart.forEach(item => {
+      orders.push({ orderId: Date.now().toString(), product: item.name, customer });
+    });
+
+    localStorage.setItem('orders', JSON.stringify(orders));
+    localStorage.removeItem('cart');
+    navigate('/');
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Payment Page</h1>
+      <form className="space-y-4" onSubmit={handlePayment}>
+        <input className="border w-full p-2" placeholder="Card Number" required />
+        <input className="border w-full p-2" placeholder="Expiry Date" required />
+        <input className="border w-full p-2" placeholder="CVV" required />
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Pay</button>
+      </form>
+    </div>
+  );
+}
+""",
+    "pages/AdminDataPage.js": """import React from 'react';
+
+export default function AdminDataPage() {
+  const orders = JSON.parse(localStorage.getItem('orders')) || [];
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Admin Data Page</h1>
+      <table className="w-full border">
+        <thead>
+          <tr>
+            <th className="border p-2">Order ID</th>
+            <th className="border p-2">Product</th>
+            <th className="border p-2">Customer</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((entry, i) => (
+            <tr key={i}>
+              <td className="border p-2">{entry.orderId}</td>
+              <td className="border p-2">{entry.product}</td>
+              <td className="border p-2">{entry.customer}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+""",
+    "pages/LoginPage.js": """import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+export default function LoginPage() {
+  const [username, setUsername] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    localStorage.setItem('username', username);
+    navigate('/');
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Login</h1>
+      <form className="space-y-4" onSubmit={handleLogin}>
+        <input
+          className="border w-full p-2"
+          placeholder="Enter your name"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Login</button>
+      </form>
+    </div>
+  );
+}
+"""
+}
+
+# Create files and folders
+for relative_path, content in files.items():
+    full_path = os.path.join(project_root, relative_path)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    with open(full_path, "w") as f:
+        f.write(content)
+
+# Zip the project directory
+zip_path = f"/mnt/data/{project_name}.zip"
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+    for foldername, subfolders, filenames in os.walk(project_root):
+        for filename in filenames:
+            filepath = os.path.join(foldername, filename)
+            arcname = os.path.relpath(filepath, project_root)
+            zipf.write(filepath, arcname)
+
+zip_path
